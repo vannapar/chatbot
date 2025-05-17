@@ -175,7 +175,7 @@ if openai_api_key:
                 model="gpt-4o",
                 messages=messages
             )
-            ai_insights = response.choices[0].message['content']
+            ai_insights = response.choices[0].message.content
             st.session_state.messages.append({"role": "assistant", "content": ai_insights})
             with st.chat_message("assistant"):
                 st.markdown(ai_insights)
