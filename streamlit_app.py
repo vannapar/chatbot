@@ -155,11 +155,13 @@ if openai_api_key:
         # On initial load, give the agent context about the dataset
         if df is not None:
             initial_system_prompt = (
-                "You are a data analyst for a cement plant. "
-                "You have just analyzed sensor data from a power meter on a limestone crusher. "
-                f"Summary stats for this dataset: {stats_summary}.\n"
-                "When answering, use these stats and EDA to help the user understand anomalies, "
-                "energy optimization, and power factor correction recommendations."
+                "You are an expert in industrial energy analysis. "
+                "Use ONLY the summary statistics and EDA insights below from my plant’s power meter data. "
+                "Do not give general advice. Reference the numbers, patterns, and management insights in the summary. "
+                "Summarize the key findings, highlight patterns/anomalies (especially regarding power factor and load), "
+                "explain differences between startup/high load and idle/low load PF, and provide specific recommendations for improvement and cost savings."
+                "\n\n"
+                f"Summary statistics and EDA insights:\n{stats_summary}\n"
             )
             st.session_state.messages.append({"role": "system", "content": initial_system_prompt})
 
@@ -167,8 +169,12 @@ if openai_api_key:
     if st.button("Generate AI Insights"):
         with st.spinner("Generating insights..."):
             user_prompt = (
-                "Based on the EDA and summary statistics, provide insights, highlight patterns or anomalies in power factor, "
-                "compare startup/high load vs idle/low load PF, and give recommendations for improvement and cost-saving to management."
+                "Use ONLY the summary statistics and EDA insights below from my plant’s power meter data. "
+                "Do not give general advice. Reference the numbers, patterns, and management insights in the summary. "
+                "Summarize the key findings, highlight patterns/anomalies (especially regarding power factor and load), "
+                "explain differences between startup/high load and idle/low load PF, and provide specific recommendations for improvement and cost savings."
+                "\n\n"
+                f"Summary statistics and EDA insights:\n{stats_summary}\n"
             )
             messages = st.session_state.messages + [{"role": "user", "content": user_prompt}]
             response = client.chat.completions.create(
