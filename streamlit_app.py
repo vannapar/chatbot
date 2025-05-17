@@ -142,7 +142,7 @@ A. Current Situation
 
 # --- Chatbot Section ---
 st.divider()
-st.header("💬 Power Factor Chatbot")
+st.header("💬 Chat to find Insights")
 
 openai_api_key = st.secrets.get("OPENAI_API_KEY")
 if not openai_api_key:
