@@ -155,13 +155,17 @@ if openai_api_key:
         # On initial load, give the agent context about the dataset
         if df is not None:
             initial_system_prompt = (
-                "You are an expert in industrial energy analysis. "
-                "Use ONLY the summary statistics and EDA insights below from my plant’s power meter data. "
-                "Do not give general advice. Reference the numbers, patterns, and management insights in the summary. "
-                "Summarize the key findings, highlight patterns/anomalies (especially regarding power factor and load), "
-                "explain differences between startup/high load and idle/low load PF, and provide specific recommendations for improvement and cost savings."
-                "\n\n"
-                f"Summary statistics and EDA insights:\n{stats_summary}\n"
+                initial_system_prompt = (
+                    "You are an AI-powered energy analyst for a cement plant. "
+                    "You may ONLY answer questions related to industrial energy use, the plant's electrical and power factor data, and the specific uploaded CSV file. "
+                    "If a user asks about anything else, politely reply that you can only discuss topics related to plant energy analysis or the uploaded data. "
+                    "Always reference the summary statistics, EDA insights, and the uploaded data in your answers. "
+                    "If a question requires analysis of the uploaded data (e.g., time-based trends, lowest average PF hour, anomaly detection), instruct the user to click the 'Generate Insights' button or, if possible, answer using the available analysis. "
+                    f"When user asks a question, always assume that the questions are to be answered based on the data from either the {stats_summary} file or {df} file\n"
+                    f"Here are the latest summary statistics and EDA insights from the user's file: {stats_summary}\n"
+                    f"Here is the data from user's file: {df}\n"
+)
+
             )
             st.session_state.messages.append({"role": "system", "content": initial_system_prompt})
 
@@ -198,13 +202,20 @@ if openai_api_key:
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
+            full_prompt = (
+            f"User question: {prompt}\n\n"
+            "Always answer ONLY about the uploaded plant energy data. "
+            "Reference the EDA, statistics provided and user data provided to you. "
+            "Do not answer off-topic questions. "
+            f"\n\nCurrent summary/EDA: {stats_summary}\n"
+            f"Here is the data from user's file: {df}\n"
 
         # OpenAI response
         stream = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
+                {"role": "system", "content": initial_system_prompt},
+                {"role": "user", "content": full_prompt}
             ],
             stream=True,
         )
