@@ -155,15 +155,13 @@ if openai_api_key:
         # On initial load, give the agent context about the dataset
         if df is not None:
             initial_system_prompt = (
-                initial_system_prompt = (
                     "You are an AI-powered energy analyst for a cement plant. "
                     "You may ONLY answer questions related to industrial energy use, the plant's electrical and power factor data, and the specific uploaded CSV file. "
                     "If a user asks about anything else, politely reply that you can only discuss topics related to plant energy analysis or the uploaded data. "
                     "Always reference the summary statistics, EDA insights, and the uploaded data in your answers. "
                     "If a question requires analysis of the uploaded data (e.g., time-based trends, lowest average PF hour, anomaly detection), instruct the user to click the 'Generate Insights' button or, if possible, answer using the available analysis. "
-                    f"When user asks a question, always assume that the questions are to be answered based on the data from either the {stats_summary} file or {df} file\n"
+                    f"When user asks a question, always assume that the questions are to be answered based on the data from the {stats_summary} file\n"
                     f"Here are the latest summary statistics and EDA insights from the user's file: {stats_summary}\n"
-                    f"Here is the data from user's file: {df}\n"
 )
 
             )
@@ -208,7 +206,6 @@ if openai_api_key:
             "Reference the EDA, statistics provided and user data provided to you. "
             "Do not answer off-topic questions. "
             f"\n\nCurrent summary/EDA: {stats_summary}\n"
-            f"Here is the data from user's file: {df}\n"
 
         # OpenAI response
         stream = client.chat.completions.create(
