@@ -164,7 +164,6 @@ if openai_api_key:
                     f"Here are the latest summary statistics and EDA insights from the user's file: {stats_summary}\n"
 )
 
-            )
             st.session_state.messages.append({"role": "system", "content": initial_system_prompt})
 
     # Option to generate insights at the start of the chat
