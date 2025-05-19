@@ -146,9 +146,6 @@ st.header("💬 Chat to find Insights")
 
 openai_api_key = st.secrets.get("OPENAI_API_KEY")
     # ————— OpenAI Chatbot Integration —————
-    if not openai_api_key:
-        st.warning("Please enter your OpenAI API key to enable AI insights and chat.")
-        st.stop()
     client = OpenAI(api_key=openai_api_key)
 
     # Initialize session state for insights & messages
