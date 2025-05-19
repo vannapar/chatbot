@@ -205,7 +205,7 @@ if openai_api_key:
             "Reference the EDA, statistics provided and user data provided to you. "
             "Do not answer off-topic questions. "
             f"\n\nCurrent summary/EDA: {stats_summary}\n"
-
+        )
         # OpenAI response
         stream = client.chat.completions.create(
             model="gpt-4o",
