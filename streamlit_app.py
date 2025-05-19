@@ -135,15 +135,10 @@ Management Insight: Idle periods cause the worst PF. Even at high load, PF rarel
         stats_summary["PF_below_0.8_%"] = pf_below_08
 
         # ——— Convert stats_summary to Markdown table ———
-        stats_df = (
-            pd.DataFrame.from_dict(stats_summary, orient="index", columns=["Value"])
-              .reset_index()
-              .rename(columns={"index": "Metric"})
-        )
-        st.session_state["stats_md"] = stats_df.to_markdown(index=False)
-
-    except Exception as e:
-        st.error(f"Error reading file: {e}")
+        md_lines = ["| Metric | Value |", "|---|---|"]
+    for metric, value in stats_summary.items():
+        md_lines.append(f"| {metric} | {value} |")
+    st.session_state["stats_md"] = "\n".join(md_lines)
 
 # --- Chatbot Section ---
 st.divider()
