@@ -152,18 +152,15 @@ if openai_api_key:
     client = OpenAI(api_key=openai_api_key)
     if "messages" not in st.session_state:
         st.session_state.messages = []
-        # On initial load, give the agent context about the dataset
+        # Only add the system prompt once
         if df is not None:
             initial_system_prompt = (
-                    "You are an AI-powered energy analyst for a cement plant. "
-                    "You may ONLY answer questions related to industrial energy use, the plant's electrical and power factor data, and the specific uploaded CSV file. "
-                    "If a user asks about anything else, politely reply that you can only discuss topics related to plant energy analysis or the uploaded data. "
-                    "Always reference the summary statistics, EDA insights, and the uploaded data in your answers. "
-                    "If a question requires analysis of the uploaded data (e.g., time-based trends, lowest average PF hour, anomaly detection), instruct the user to click the 'Generate Insights' button or, if possible, answer using the available analysis. "
-                    f"When user asks a question, always assume that the questions are to be answered based on the data from the {stats_summary} file\n"
-                    f"Here are the latest summary statistics and EDA insights from the user's file: {stats_summary}\n"
-)
-
+                "You are an AI-powered energy analyst for a cement plant. "
+                "You may ONLY answer questions related to industrial energy use, the plant's electrical and power factor data, and the specific uploaded CSV file. "
+                "If a user asks about anything else, politely reply that you can only discuss topics related to plant energy analysis or the uploaded data. "
+                "Always reference the summary statistics, EDA insights, and the uploaded data in your answers. "
+                f"Here are the latest summary statistics and EDA insights from the user's file: {stats_summary}\n"
+            )
             st.session_state.messages.append({"role": "system", "content": initial_system_prompt})
 
     # Option to generate insights at the start of the chat
@@ -177,7 +174,11 @@ if openai_api_key:
                 "\n\n"
                 f"Summary statistics and EDA insights:\n{stats_summary}\n"
             )
-            messages = st.session_state.messages + [{"role": "user", "content": user_prompt}]
+            # Only send the system prompt and insight user prompt (not full history)
+            messages = [
+                {"role": "system", "content": initial_system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages
@@ -199,23 +200,18 @@ if openai_api_key:
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
-            full_prompt = (
-            f"User question: {prompt}\n\n"
-            "Always answer ONLY about the uploaded plant energy data. "
-            "Reference the EDA, statistics provided and user data provided to you. "
-            "Do not answer off-topic questions. "
-            f"\n\nCurrent summary/EDA: {stats_summary}\n"
-        )
-        # OpenAI response
+        # Only include the system prompt and the actual conversation history (not duplicates)
+        chat_history = [
+            m for m in st.session_state.messages if m["role"] in ["system", "user", "assistant"]
+        ]
+        # Always ensure the system prompt is at the top
+        if chat_history[0]["role"] != "system":
+            chat_history = [{"role": "system", "content": initial_system_prompt}] + chat_history
         stream = client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {"role": "system", "content": initial_system_prompt},
-                {"role": "user", "content": full_prompt}
-            ],
+            messages=chat_history,
             stream=True,
         )
-
         with st.chat_message("assistant"):
             response = st.write_stream(stream)
         st.session_state.messages.append({"role": "assistant", "content": response})
