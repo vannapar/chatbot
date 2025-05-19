@@ -149,62 +149,62 @@ openai_api_key = st.secrets.get("OPENAI_API_KEY")
 client = OpenAI(api_key=openai_api_key)
 
     # Initialize session state for insights & messages
-    if "ai_insights" not in st.session_state:
-        st.session_state["ai_insights"] = ""
-    if "chat_history" not in st.session_state:
-        st.session_state["chat_history"] = []
+if "ai_insights" not in st.session_state:
+    st.session_state["ai_insights"] = ""
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
 
     # 2️⃣ Generate AI Insights Button
-    st.markdown("---")
-    if st.button("Generate AI Insights"):
-        with st.spinner("Generating summary insights…"):
-            ai_resp = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a data-savvy energy analyst. "
-                            "Given the summary statistics and chart descriptions above, "
-                            "provide a concise executive summary highlighting key findings, "
-                            "anomalies, and high-level recommendations."
-                        )
-                    },
-                    {"role": "user", "content": summary_insights}
-                ]
-            )
-        st.session_state["ai_insights"] = ai_resp.choices[0].message.content
+st.markdown("---")
+if st.button("Generate AI Insights"):
+    with st.spinner("Generating summary insights…"):
+        ai_resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a data-savvy energy analyst. "
+                        "Given the summary statistics and chart descriptions above, "
+                        "provide a concise executive summary highlighting key findings, "
+                        "anomalies, and high-level recommendations."
+                    )
+                },
+                {"role": "user", "content": summary_insights}
+            ]
+        )
+    st.session_state["ai_insights"] = ai_resp.choices[0].message.content
 
     # Show the AI Insights if available
-    if st.session_state["ai_insights"]:
-        st.subheader("🤖 AI-Generated Insights")
-        st.info(st.session_state["ai_insights"])
+if st.session_state["ai_insights"]:
+    st.subheader("🤖 AI-Generated Insights")
+    st.info(st.session_state["ai_insights"])
 
     # 3️⃣ Chat Interface
-    st.markdown("---")
-    st.subheader("💬 Ask AI About Your Energy Data")
-    user_q = st.chat_input("Type your question here…")
-    if user_q:
+st.markdown("---")
+st.subheader("💬 Ask AI About Your Energy Data")
+user_q = st.chat_input("Type your question here…")
+if user_q:
         # append user message
-        st.session_state["chat_history"].append({"role": "user", "content": user_q})
+    st.session_state["chat_history"].append({"role": "user", "content": user_q})
         # build full message list, injecting the AI insights as system context
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are a helpful assistant for plant energy analysis. "
-                    "Use these AI insights as your context:\n"
-                    f"{st.session_state['ai_insights']}"
-                )
-            }
-        ] + st.session_state["chat_history"]
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a helpful assistant for plant energy analysis. "
+                "Use these AI insights as your context:\n"
+                f"{st.session_state['ai_insights']}"
+            )
+        }
+    ] + st.session_state["chat_history"]
         # get AI reply
-        reply = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages
-        ).choices[0].message
-        st.session_state["chat_history"].append({"role": reply.role, "content": reply.content})
+    reply = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages
+    ).choices[0].message
+    st.session_state["chat_history"].append({"role": reply.role, "content": reply.content})
 
     # render the chat history
-    for msg in st.session_state["chat_history"]:
-        st.chat_message(msg["role"]).write(msg["content"])
+for msg in st.session_state["chat_history"]:
+    st.chat_message(msg["role"]).write(msg["content"])
