@@ -26,13 +26,22 @@ if uploaded_file is not None:
 
         # Basic column cleanup
         for col in df.columns:
-            df.rename(columns={col: col.strip().replace(" ", "_").replace("(", "").replace(")", "")}, inplace=True)
+            df.rename(
+                columns={col: col.strip().replace(" ", "_").replace("(", "").replace(")", "")},
+                inplace=True
+            )
 
         # Convert numeric columns
         numeric_cols = ["KWH", "V_31", "VLL"]
         for col in numeric_cols:
             if col in df.columns:
-                df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", "").str.strip().replace({'-': None, '': None}), errors="coerce")
+                df[col] = pd.to_numeric(
+                    df[col].astype(str)
+                        .str.replace(",", "")
+                        .str.strip()
+                        .replace({'-': None, '': None}),
+                    errors="coerce"
+                )
         if "TIME" in df.columns:
             df["TIME"] = pd.to_datetime(df["TIME"], errors="coerce")
 
@@ -42,7 +51,7 @@ if uploaded_file is not None:
         if pf_below_08 is not None:
             st.metric("Count of times PF < 0.8 (%)", f"{pf_below_08:.2f}")
 
-        # --- Power Factor Distribution plot
+        # --- Power Factor Distribution plot ---
         if "PF" in df.columns:
             st.subheader("Power Factor (PF) Distribution")
             fig, ax = plt.subplots(figsize=(5,3))
@@ -53,7 +62,7 @@ if uploaded_file is not None:
             ax.legend()
             st.pyplot(fig)
 
-        # --- Smaller side-by-side scatter plots
+        # --- Scatter Plots ---
         st.subheader("Scatter Plots: PF vs KW, PF vs KVAR")
         col1, col2 = st.columns(2)
         if "KW" in df.columns and "PF" in df.columns:
@@ -73,7 +82,7 @@ if uploaded_file is not None:
                 ax.set_title("PF vs KVAR")
                 st.pyplot(fig)
 
-        # --- PF Distribution: Startup/High Load vs Idle/Low Load ---
+        # --- PF Distribution: High vs Low Load ---
         st.subheader("PF Distribution: Startup/High Load vs Idle/Low Load")
         if "KW" in df.columns and "PF" in df.columns:
             high_kw_thresh = df["KW"].quantile(0.90)
@@ -81,7 +90,6 @@ if uploaded_file is not None:
             startup_high_load = df[df["KW"] >= high_kw_thresh]
             idle_low_load = df[df["KW"] <= low_kw_thresh]
 
-            # Histograms overlayed
             fig, ax = plt.subplots(figsize=(6,3))
             ax.hist(startup_high_load["PF"], bins=30, alpha=0.6, label='Startup/High Load (Top 10%)', color='blue')
             ax.hist(idle_low_load["PF"], bins=30, alpha=0.6, label='Idle/Low Load (Bottom 10%)', color='gray')
@@ -91,7 +99,6 @@ if uploaded_file is not None:
             ax.legend()
             st.pyplot(fig)
 
-            # Key summary stats
             high_mean_pf = startup_high_load["PF"].mean()
             low_mean_pf = idle_low_load["PF"].mean()
             high_pf_count = startup_high_load["PF"].count()
@@ -107,35 +114,33 @@ if uploaded_file is not None:
             - Number of Records: `{low_pf_count}`  
             """)
 
-            # --- Compose summary insights for the AI context ---
+            # Compose narrative insights
             summary_insights = f"""
 2. Scatterplots:
 - PF vs KW: At both high and low KW, PF can be very low—suggests both startup/idle and maybe partial-load operation cause poor PF.
-- PF vs KVAR: There is a stronger pattern—when KVAR is high, PF is always low. (This is expected: high reactive power = poor PF.)
+- PF vs KVAR: There is a stronger pattern—when KVAR is high, PF is always low.
 
-2. Are Startup or Idle Periods Causing the Worst PF?
-Startup/High Load (Top 10% KW): Mean PF = {high_mean_pf:.2f} (higher than average, but still below 0.8).
-Idle/Low Load (Bottom 10% KW): Mean PF = {low_mean_pf:.2f} (very poor; mostly near zero).
+3. PF by Load:
+- Startup/High Load (Top 10% KW): Mean PF = {high_mean_pf:.2f}
+- Idle/Low Load (Bottom 10% KW): Mean PF = {low_mean_pf:.2f}
 
-Histogram shows idle periods are responsible for the worst PF, but even at high load, PF rarely exceeds 0.8.
-
-Management Insight: Idle periods (when the crusher is on but not loaded) cause the worst power factor. Even at high load, PF is sub-optimal. Action: Address both idle running and overall plant compensation.
-
-3. Template for PF Correction Recommendations & Cost-Saving Estimation
-A. Current Situation
-- Average PF: {df['PF'].mean():.2f}
-- PF < 0.8: {pf_below_08:.2f}% of the time
-- Idle Period PF: {low_mean_pf:.2f} (worst)
-- Startup/High Load PF: {high_mean_pf:.2f}
+Management Insight: Idle periods cause the worst PF. Even at high load, PF rarely exceeds 0.8. Action: Address both idle running and plant compensation.
 """
-            # Add this to the stats summary so the AI can reference it
-            stats_summary["high_load_pf"] = high_mean_pf
-            stats_summary["low_load_pf"] = low_mean_pf
-            stats_summary["insights"] = summary_insights
 
-        # Summarize for AI: Only share aggregates, not whole CSV (for privacy/token limits)
+            stats_summary["high_load_pf"] = high_mean_pf
+            stats_summary["low_load_pf"]  = low_mean_pf
+            stats_summary["insights"]     = summary_insights
+
         stats_summary.update(df.describe().to_dict())
         stats_summary["PF_below_0.8_%"] = pf_below_08
+
+        # ——— Convert stats_summary to Markdown table ———
+        stats_df = (
+            pd.DataFrame.from_dict(stats_summary, orient="index", columns=["Value"])
+              .reset_index()
+              .rename(columns={"index": "Metric"})
+        )
+        st.session_state["stats_md"] = stats_df.to_markdown(index=False)
 
     except Exception as e:
         st.error(f"Error reading file: {e}")
@@ -144,17 +149,16 @@ A. Current Situation
 st.divider()
 st.header("💬 Chat to find Insights")
 
+# grab your key however you like
 openai_api_key = st.secrets.get("OPENAI_API_KEY")
-    # ————— OpenAI Chatbot Integration —————
 client = OpenAI(api_key=openai_api_key)
 
-    # Initialize session state for insights & messages
 if "ai_insights" not in st.session_state:
     st.session_state["ai_insights"] = ""
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []
 
-    # 2️⃣ Generate AI Insights Button
+# Generate AI Insights button
 st.markdown("---")
 if st.button("Generate AI Insights"):
     with st.spinner("Generating summary insights…"):
@@ -175,36 +179,38 @@ if st.button("Generate AI Insights"):
         )
     st.session_state["ai_insights"] = ai_resp.choices[0].message.content
 
-    # Show the AI Insights if available
+# Display AI Insights
 if st.session_state["ai_insights"]:
     st.subheader("🤖 AI-Generated Insights")
     st.info(st.session_state["ai_insights"])
 
-    # 3️⃣ Chat Interface
+# Chat input
 st.markdown("---")
 st.subheader("💬 Ask AI About Your Energy Data")
 user_q = st.chat_input("Type your question here…")
 if user_q:
-        # append user message
     st.session_state["chat_history"].append({"role": "user", "content": user_q})
-        # build full message list, injecting the AI insights as system context
+
+    # Build system context with both AI insights and raw stats table
+    system_context = (
+        "You are a helpful assistant for plant energy analysis. "
+        "Use the following AI‐generated insights and raw summary stats to ground your answers:\n\n"
+        f"**AI Insights:**\n{st.session_state['ai_insights']}\n\n"
+        f"**Raw Stats Summary:**\n{st.session_state['stats_md']}"
+    )
+
     messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a helpful assistant for plant energy analysis. "
-                "Use these AI insights as your context:\n"
-                f"{st.session_state['ai_insights']}"
-            )
-        }
-    ] + st.session_state["chat_history"]
-        # get AI reply
+        {"role": "system", "content": system_context},
+        *st.session_state["chat_history"]
+    ]
+
     reply = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=messages
     ).choices[0].message
+
     st.session_state["chat_history"].append({"role": reply.role, "content": reply.content})
 
-    # render the chat history
+# Render chat history
 for msg in st.session_state["chat_history"]:
     st.chat_message(msg["role"]).write(msg["content"])
