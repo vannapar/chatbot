@@ -8,7 +8,8 @@ st.set_page_config(page_title="SC Power Analysis", layout="wide")
 
 st.title("⚡ SC LS Crusher Power Analysis Powered by AI")
 st.write(
-    "Upload your power meter CSV file. The app will analyze the data (Power Factor, KW, KVAR, etc.), show key EDA, and you can chat with an AI agent about plant energy insights, anomalies, and recommendations. "
+    "Upload your power meter CSV file. The app will analyze the data (Power Factor, KW, KVAR, etc.), "
+    "show key EDA, and you can chat with an AI agent about plant energy insights, anomalies, and recommendations. "
     "You need your OpenAI API key to use the chatbot."
 )
 
@@ -134,11 +135,14 @@ Management Insight: Idle periods cause the worst PF. Even at high load, PF rarel
         stats_summary.update(df.describe().to_dict())
         stats_summary["PF_below_0.8_%"] = pf_below_08
 
-        # ——— Convert stats_summary to Markdown table ———
+        # ——— Convert stats_summary to a simple Markdown table ———
         md_lines = ["| Metric | Value |", "|---|---|"]
-    for metric, value in stats_summary.items():
-        md_lines.append(f"| {metric} | {value} |")
-    st.session_state["stats_md"] = "\n".join(md_lines)
+        for metric, value in stats_summary.items():
+            md_lines.append(f"| {metric} | {value} |")
+        st.session_state["stats_md"] = "\n".join(md_lines)
+
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
 
 # --- Chatbot Section ---
 st.divider()
